@@ -1,0 +1,642 @@
+name: Build YTubeDown APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create project structure
+        run: |
+          mkdir -p app/src/main/{java/com/ytubedown,res/{layout,values,drawable,mipmap-hdpi,mipmap-mdpi,mipmap-xhdpi,mipmap-xxhdpi,mipmap-xxxhdpi}}
+          mkdir -p .github/workflows
+          mkdir -p gradle/wrapper
+
+      # ── ICONS ──────────────────────────────────────────────────────────────
+      - name: Write icons
+        run: |
+          echo "iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAAAmklEQVR4nO3RwQ3AMAhD0QyX/VdqF0gTIMZYFV/c/STG6Eg9cxbPW07FwZCFKSksiAZmAmpuTXDKFStVEzFpgQgah4mmMZnImrNJC1Si2ZkatAUVatamBjXoX6ByjaJJ+2UNahAAVGtaaBpkAFWZPjWKIL7poCGbTBqayaFRBGWb3Jo8VpySYQJogCaY5p6Fp8Rk6Y49sXI+rxcxsw2DEHZ9NAAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+          echo "iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAIAAADajyQQAAAA+0lEQVR4nO3S0Q2DQAwEUYqj/5aSfCPI5eDWYzu7cgHzJG+b513ute90wrN9ALNHJ3/dDU924RJSIt5yTwphgCraFkYK5SEquQ1UqWw4ScLDJRIbblDZcIAEhtdLbHi3xIYXq2x4rgSGt0pseKXKhicaNgPD+1Q2PE4Cw8tUNjzLsBkY3qSy4UGGGWZYjTOs2vVUdbb9xysaVuAMq3aGVbsjrIftRGVY6juHVbddqjrD6toGKsPS3RhW0faTqpxtQtUZVsU2rSphu6lKbnuk6gzLaVugSmhbpsrDW0/KYBOqQJtcFc+LI0XaAJVUCHsOa0g6rJtnuPKADHsDJ7ah23Uz70QAAAAASUVORK5CYII=" | base64 -d > app/src/main/res/mipmap-hdpi/ic_launcher.png
+          cp app/src/main/res/mipmap-hdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+          echo "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAABS0lEQVR4nO3QyxHCMAAD0RSX/lsCTgw3m/izsr0aFSC96zJmq7zum54QkI/Cs9LDR+YxyuZY3V32kZpAsyrTZJqVmECadCYcJZoJt8g1wgmimfDn0Ub452gj/G2uEX4ymgn/lm6EH4sGwl9FG+F/oo3wJ9FG+Id0I/xANBC+PtoI351uhI+OBsIXpxvhc6OB8K3pRvjQaCB8ZboRPjEaCN+XUIEEGgSEL8upQAIJNBsI35RWgQQSSCCBgiuQQALNA8LXZFajah2BBBJIIIGyKpBAAk0F0qigI5BAAo0G0qigI5BAzUAaFXQEKgOdbFSlI5BGzToCadSsI5BGzTqHGDXpCHS6UQedjY266Wxp1FlnM6MhOgKdYjRQZ3WmGTTrGk3VWc4I0FnICNPJZ6JhfoJbROt8g6Pk0vxGmqpIUxVpaqPLHxHleVRYLG83SIjxj0Q12gAAAABJRU5ErkJggg==" | base64 -d > app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          cp app/src/main/res/mipmap-xhdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+          echo "iVBORw0KGgoAAAANSUhEUgAAAJAAAACQCAIAAABoJHXvAAACJUlEQVR4nO3U2U1EMRAFUYIj/5QAwc+IWbDNUl2oriqA5z7Se3pqrbXtvTw/05/QLvbm8f3oR/zr/YhQfr+7P0AK7wcGOiW3N5wntqXhHsmtDgeIbXX40WNbHX7o2FaHHze2jeE3zWx1+Clj2xh+wcxWhx8uto3h95oQjbA8/FJzoikWht9oWjTIw+HXmRnNcmf4XSZH41wNv8j8aKKL4bewREO9D7+Cq7R8peUrLV9p+UrLV1q+ApOVlq+0fAUmKy1fafkKTFZavgKTlZavwGSl5SswWWn5CkxWYLLS8hWYrLR8BSYrMFlp+QpMVmCyApOVlq/AZAUmKzBZgclKy1dgsgKTFZiswGQFJiswWYHJCkxWYLICk5WWr8xM9UuUFZiswGQFJiswWYHJCkxWYLICkxWYrM9gmU3uhlZgkwtMVmCyApN1Gyyzmd3VCmxmgckKTNYjsMym9YVWYNMKTNbXYJnNaUkrsDmtgmU2oQ2twCYUmKw9sMxkWoH5wDKTaQXmA8tMphWYDywzmVZgPrDMZFqZ+bQC84FlJtPKzKcVmA8sM5lWZj6tzHxamfm0MvNpZebT+hh+BUs01MXwW8yPJroafpHJ0Th3ht9lZjTLw+HXmRYNsjD8RnOiKZaHX2pCNMLm8HuldTL8cFFtD79gWifDTxnV9vCbpnUy/LhRnQw/dFQnw48e1clwgKgOh3vkdDKcJ6rD5SReSO4l9N+WRxuxV3MfvTElfV2BAAAAAElFTkSuQmCC" | base64 -d > app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          cp app/src/main/res/mipmap-xxhdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+          echo "iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADoklEQVR4nO3VAY7aQBREwT1c7n+lJAqKhMJCjNumPTPVqgPA/Cf568vMzC66nz9+tH+CXXK/yzhW+w/ZmTs8F0nNv0o0Yhp79VDENOTqTShpyNULUNKoq59cRqOufmYZDbn6XZU06uqHlNGoqx/vOtqnGHD1m11N+yDjrH6qK2sf59qrn2cU7UNdcvWrjKV9riutfoxxtU93gdVvMLr2AXurP/1M2sf8+OovPp/2ST+4+lvPqn3Y81d/4hW0j3za6i+7jvapT1j9TVfTPvihq7/mmtpnP2j1d1xZ+/jx6i9IO4Fg9bfjph3CrtVfjXvtHN5c/b141I5i8+ovxTPtNDas/ka81g7k5eqvwxbtTJ6s/i5s147lYfUX4V3tZO5Wfwv2aYfzd/WHYJ92OH9WfwUS6iGlHlICIqIeUuohJSAi6iGlHlICIqIeUgIioh5S6iElICLqISUgIuohJSAiAiKiHlICIqIeUgIioh5SAiIiICLqISUgIgIioh5SAiIiICICIqIeUgIiIiAiAiKiHlICIiIgIgIiIiAiAiKiHlICIiIgIgIiIiAiAiIiICICIiIgIgIiIiAiAiIiICLqIaUh9vMJIyIgIgIiIiAiAiIiICICIiIgIgIiIiAiAiIiICL/BqQhtvumHgGxnYCICIiIgIgIiMj3AWmILZ7WIyC2EBARARF5FZCGeO0/9QiI1wREREBE/h+QhnhmUz0C4hkBEdkakIZ49EY9AuKRgIi8F5CGuPd2PQLi3p6ANMTNznoExM3+gDREVI+AEBCRNCANreyAegS0smMC0tCaDqtHQGs6MiANrebgejS0lFPqEdA6zgpIQys4sR4BreDcgDQ0t9Pr0dDEPlSPgGb1uYA0NJ+P1qOhyRTqEdBMOgFpaA61ejQ0gXI9t9VfgX3a4fxd/SHYpx3O3epvwbvayTys/iJs147lyervwhbtTF6u/jq81g5kw+pvxDPtNDav/lI8akfx5urvxb12DrtWfzVu2iEEq78d7QTi1V9wZe3jH7T6O66pffZDV3/N1bQPfsLqb7qO9qlPW/1lV9A+8vmrP/Gs2of94OpvPZ/2ST+++ovPpH3M3upPP7r2AS+w+g3G1T7dlVY/xlja57rk6lcZRftQ1179PFfWPs44q5/qatoHGXD1m11H+xQjr3486cyw+iGlM8nqd9XNDKufWTozrH5y6UyyegG6mWT1JnQzz+qhiGaeicYOnlzsE1OG2Yn7BYOSeWNyvcP8AAAAAElFTkSuQmCC" | base64 -d > app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          cp app/src/main/res/mipmap-xxxhdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+
+      # ── GRADLE WRAPPER ─────────────────────────────────────────────────────
+      - name: Write gradle wrapper
+        run: |
+          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-bin.zip
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+EOF
+
+      - name: Download gradlew
+        run: |
+          curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradlew -o gradlew
+          chmod +x gradlew
+
+      # ── ROOT BUILD FILES ───────────────────────────────────────────────────
+      - name: Write root build.gradle
+        run: |
+          cat > build.gradle << 'EOF'
+buildscript {
+    repositories { google(); mavenCentral() }
+    dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+}
+allprojects { repositories { google(); mavenCentral() } }
+task clean(type: Delete) { delete rootProject.buildDir }
+EOF
+
+      - name: Write settings.gradle
+        run: |
+          cat > settings.gradle << 'EOF'
+rootProject.name = "YTubeDown"
+include ':app'
+EOF
+
+      # ── APP BUILD.GRADLE ───────────────────────────────────────────────────
+      - name: Write app/build.gradle
+        run: |
+          cat > app/build.gradle << 'EOF'
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.ytubedown'
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.ytubedown"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        debug { debuggable true }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures { viewBinding true }
+}
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    implementation 'io.github.junkfood02.youtubedl-android:library:0.17.2'
+    implementation 'io.github.junkfood02.youtubedl-android:ffmpeg:0.17.2'
+}
+EOF
+
+      # ── MANIFEST ───────────────────────────────────────────────────────────
+      - name: Write AndroidManifest.xml
+        run: |
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="YTubeDown"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.YTubeDown">
+        <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".SettingsActivity" android:exported="false" />
+        <service android:name=".DownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
+    </application>
+</manifest>
+EOF
+
+      # ── DRAWABLES ──────────────────────────────────────────────────────────
+      - name: Write drawables
+        run: |
+          cat > app/src/main/res/drawable/search_bg.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#2A2A2A" />
+    <corners android:radius="26dp" />
+</shape>
+EOF
+          cat > app/src/main/res/drawable/download_btn_bg.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="#FF4444" />
+</shape>
+EOF
+          cat > app/src/main/res/drawable/option_bg.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#1E1E1E" />
+    <corners android:radius="12dp" />
+</shape>
+EOF
+
+      # ── VALUES ─────────────────────────────────────────────────────────────
+      - name: Write values
+        run: |
+          cat > app/src/main/res/values/themes.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.YTubeDown" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#FF4444</item>
+        <item name="colorPrimaryVariant">#CC0000</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSurface">#1A1A1A</item>
+        <item name="android:windowBackground">#0F0F0F</item>
+        <item name="android:statusBarColor">#1A1A1A</item>
+        <item name="android:navigationBarColor">#0F0F0F</item>
+    </style>
+</resources>
+EOF
+          cat > app/src/main/res/values/strings.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">YTubeDown</string>
+    <string-array name="quality_options">
+        <item>320 kbps</item>
+        <item>256 kbps</item>
+        <item>192 kbps</item>
+        <item>128 kbps</item>
+    </string-array>
+</resources>
+EOF
+
+      # ── LAYOUTS ────────────────────────────────────────────────────────────
+      - name: Write activity_main.xml
+        run: |
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F0F0F">
+    <LinearLayout android:id="@+id/topBar" android:layout_width="match_parent"
+        android:layout_height="64dp" android:orientation="horizontal"
+        android:paddingHorizontal="12dp" android:gravity="center_vertical"
+        android:background="#1A1A1A">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="YTubeDown"
+            android:textColor="#FF4444" android:textSize="20sp" android:textStyle="bold" />
+        <ImageButton android:id="@+id/btnSettings" android:layout_width="40dp"
+            android:layout_height="40dp" android:src="@android:drawable/ic_menu_manage"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Ajustes" android:tint="#CCCCCC" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/searchBar" android:layout_width="match_parent"
+        android:layout_height="52dp" android:layout_marginTop="64dp"
+        android:layout_marginHorizontal="12dp" android:layout_marginBottom="8dp"
+        android:orientation="horizontal" android:background="@drawable/search_bg"
+        android:gravity="center_vertical" android:paddingHorizontal="12dp">
+        <EditText android:id="@+id/etSearch" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1"
+            android:hint="Buscar en YouTube..." android:hintTextColor="#666666"
+            android:textColor="#FFFFFF" android:textSize="15sp" android:background="@null"
+            android:imeOptions="actionSearch" android:inputType="text" android:singleLine="true" />
+        <ImageButton android:id="@+id/btnSearch" android:layout_width="36dp"
+            android:layout_height="36dp" android:src="@android:drawable/ic_menu_search"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Buscar" android:tint="#FF4444" />
+    </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/recyclerView"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:layout_marginTop="124dp" android:clipToPadding="false"
+        android:paddingBottom="16dp" />
+    <ProgressBar android:id="@+id/progressBar" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_gravity="center"
+        android:visibility="gone" android:indeterminateTint="#FF4444" />
+    <LinearLayout android:id="@+id/emptyState" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_gravity="center"
+        android:orientation="vertical" android:gravity="center">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="&#127925;" android:textSize="48sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Busca algo para descargar" android:textColor="#666666"
+            android:textSize="16sp" android:layout_marginTop="12dp" />
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+EOF
+
+      - name: Write item_video.xml
+        run: |
+          cat > app/src/main/res/layout/item_video.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp" android:layout_marginVertical="6dp"
+    app:cardBackgroundColor="#1A1A1A" app:cardCornerRadius="12dp" app:cardElevation="0dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:padding="12dp" android:gravity="center_vertical">
+        <ImageView android:id="@+id/imgThumbnail" android:layout_width="120dp"
+            android:layout_height="70dp" android:scaleType="centerCrop" android:background="#2A2A2A" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="12dp">
+            <TextView android:id="@+id/tvTitle" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="#FFFFFF"
+                android:textSize="14sp" android:maxLines="2" android:ellipsize="end"
+                android:lineSpacingMultiplier="1.2" />
+            <TextView android:id="@+id/tvChannel" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="#999999"
+                android:textSize="12sp" android:layout_marginTop="4dp" />
+            <TextView android:id="@+id/tvDuration" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="#666666"
+                android:textSize="11sp" android:layout_marginTop="2dp" />
+        </LinearLayout>
+        <ImageButton android:id="@+id/btnDownload" android:layout_width="44dp"
+            android:layout_height="44dp" android:src="@android:drawable/stat_sys_download"
+            android:background="@drawable/download_btn_bg" android:contentDescription="Descargar"
+            android:tint="#FFFFFF" android:layout_marginStart="8dp" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
+EOF
+
+      - name: Write activity_settings.xml
+        run: |
+          cat > app/src/main/res/layout/activity_settings.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#0F0F0F">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="64dp"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:paddingHorizontal="12dp" android:background="#1A1A1A">
+        <ImageButton android:id="@+id/btnBack" android:layout_width="40dp"
+            android:layout_height="40dp" android:src="@android:drawable/ic_media_previous"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="#CCCCCC" android:contentDescription="Volver" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Ajustes" android:textColor="#FFFFFF" android:textSize="18sp"
+            android:textStyle="bold" android:layout_marginStart="12dp" />
+    </LinearLayout>
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="20dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="FORMATO DE DESCARGA" android:textColor="#FF4444"
+                android:textSize="12sp" android:textStyle="bold" android:layout_marginBottom="12dp" />
+            <LinearLayout android:id="@+id/optAudio" android:layout_width="match_parent"
+                android:layout_height="60dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                android:background="@drawable/option_bg" android:layout_marginBottom="8dp">
+                <RadioButton android:id="@+id/rbAudio" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:buttonTint="#FF4444" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Solo Audio (MP3)" android:textColor="#FFFFFF" android:textSize="15sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Descarga directa sin preguntar" android:textColor="#888888"
+                        android:textSize="12sp" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="&#127925;" android:textSize="24sp" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/optVideo" android:layout_width="match_parent"
+                android:layout_height="60dp" android:orientation="horizontal"
+                android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                android:background="@drawable/option_bg" android:layout_marginBottom="24dp">
+                <RadioButton android:id="@+id/rbVideo" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:buttonTint="#FF4444" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Video (MP4)" android:textColor="#FFFFFF" android:textSize="15sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Descarga directa sin preguntar" android:textColor="#888888"
+                        android:textSize="12sp" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="&#127916;" android:textSize="24sp" />
+            </LinearLayout>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="CALIDAD DE AUDIO" android:textColor="#FF4444"
+                android:textSize="12sp" android:textStyle="bold" android:layout_marginBottom="12dp" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="56dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingHorizontal="16dp" android:background="@drawable/option_bg"
+                android:layout_marginBottom="24dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:text="Calidad MP3"
+                    android:textColor="#FFFFFF" android:textSize="15sp" />
+                <Spinner android:id="@+id/spinnerQuality" android:layout_width="130dp"
+                    android:layout_height="wrap_content" android:backgroundTint="#FF4444" />
+            </LinearLayout>
+            <Button android:id="@+id/btnSave" android:layout_width="match_parent"
+                android:layout_height="52dp" android:text="Guardar ajustes"
+                android:textColor="#FFFFFF" android:textSize="16sp"
+                android:backgroundTint="#FF4444" android:layout_marginTop="8dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
+EOF
+
+      # ── JAVA SOURCE FILES ──────────────────────────────────────────────────
+      - name: Write Java sources
+        run: |
+          SRC=app/src/main/java/com/ytubedown
+
+          cat > $SRC/VideoItem.java << 'EOF'
+package com.ytubedown;
+public class VideoItem {
+    public String id, title, channel, duration, thumbnailUrl, url;
+    public VideoItem(String id, String title, String channel, String duration, String thumbnailUrl) {
+        this.id = id; this.title = title; this.channel = channel;
+        this.duration = duration; this.thumbnailUrl = thumbnailUrl;
+        this.url = "https://www.youtube.com/watch?v=" + id;
+    }
+}
+EOF
+
+          cat > $SRC/Prefs.java << 'EOF'
+package com.ytubedown;
+import android.content.Context;
+import android.content.SharedPreferences;
+public class Prefs {
+    private static final String NAME = "ytubedown_prefs";
+    public static SharedPreferences get(Context ctx) { return ctx.getSharedPreferences(NAME, Context.MODE_PRIVATE); }
+    public static String getFormat(Context ctx) { return get(ctx).getString("format", "audio"); }
+    public static String getQuality(Context ctx) { return get(ctx).getString("quality", "320"); }
+    public static void save(Context ctx, String format, String quality) {
+        get(ctx).edit().putString("format", format).putString("quality", quality).apply();
+    }
+}
+EOF
+
+          cat > $SRC/YouTubeSearch.java << 'EOF'
+package com.ytubedown;
+import com.google.gson.*;
+import java.io.IOException;
+import java.util.*;
+import okhttp3.*;
+public class YouTubeSearch {
+    private static final String PIPED_API = "https://pipedapi.kavin.rocks";
+    private final OkHttpClient client = new OkHttpClient();
+    public interface Callback { void onResults(List<VideoItem> items); void onError(String message); }
+    public void search(String query, Callback callback) {
+        new Thread(() -> {
+            try {
+                String url = PIPED_API + "/search?q=" + java.net.URLEncoder.encode(query, "UTF-8") + "&filter=videos";
+                Request request = new Request.Builder().url(url).header("User-Agent","YTubeDown/1.0").build();
+                try (Response response = client.newCall(request).execute()) {
+                    if (!response.isSuccessful()) { callback.onError("Error: " + response.code()); return; }
+                    callback.onResults(parseResults(response.body().string()));
+                }
+            } catch (IOException e) { callback.onError("Error: " + e.getMessage()); }
+        }).start();
+    }
+    private List<VideoItem> parseResults(String json) {
+        List<VideoItem> list = new ArrayList<>();
+        try {
+            JsonArray items = JsonParser.parseString(json).getAsJsonObject().getAsJsonArray("items");
+            for (JsonElement el : items) {
+                JsonObject obj = el.getAsJsonObject();
+                if (!obj.has("type") || !obj.get("type").getAsString().equals("stream")) continue;
+                String id = "";
+                if (obj.has("url")) { String u = obj.get("url").getAsString(); if (u.contains("v=")) id = u.substring(u.indexOf("v=") + 2); }
+                String title = obj.has("title") ? obj.get("title").getAsString() : "Sin título";
+                String channel = obj.has("uploaderName") ? obj.get("uploaderName").getAsString() : "";
+                String thumbnail = obj.has("thumbnail") ? obj.get("thumbnail").getAsString() : "";
+                int d = obj.has("duration") ? obj.get("duration").getAsInt() : 0;
+                String dur = d > 0 ? (d>=3600 ? String.format("%d:%02d:%02d",d/3600,(d%3600)/60,d%60) : String.format("%d:%02d",d/60,d%60)) : "";
+                if (!id.isEmpty()) list.add(new VideoItem(id, title, channel, dur, thumbnail));
+                if (list.size() >= 20) break;
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return list;
+    }
+}
+EOF
+
+          cat > $SRC/VideoAdapter.java << 'EOF'
+package com.ytubedown;
+import android.view.*;
+import android.widget.*;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.*;
+import com.bumptech.glide.Glide;
+import java.util.List;
+public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VH> {
+    public interface OnDownloadClick { void onClick(VideoItem item); }
+    private final List<VideoItem> items;
+    private final OnDownloadClick listener;
+    public VideoAdapter(List<VideoItem> items, OnDownloadClick listener) { this.items = items; this.listener = listener; }
+    @NonNull @Override
+    public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        return new VH(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_video, parent, false));
+    }
+    @Override public void onBindViewHolder(@NonNull VH h, int pos) {
+        VideoItem item = items.get(pos);
+        h.title.setText(item.title); h.channel.setText(item.channel); h.duration.setText(item.duration);
+        Glide.with(h.thumbnail.getContext()).load(item.thumbnailUrl).centerCrop().into(h.thumbnail);
+        h.btnDownload.setOnClickListener(v -> listener.onClick(item));
+    }
+    @Override public int getItemCount() { return items.size(); }
+    static class VH extends RecyclerView.ViewHolder {
+        ImageView thumbnail; TextView title, channel, duration; ImageButton btnDownload;
+        VH(View v) { super(v); thumbnail=v.findViewById(R.id.imgThumbnail); title=v.findViewById(R.id.tvTitle);
+            channel=v.findViewById(R.id.tvChannel); duration=v.findViewById(R.id.tvDuration);
+            btnDownload=v.findViewById(R.id.btnDownload); }
+    }
+}
+EOF
+
+          cat > $SRC/DownloadService.java << 'EOF'
+package com.ytubedown;
+import android.app.*;
+import android.content.Intent;
+import android.os.*;
+import android.widget.Toast;
+import androidx.core.app.NotificationCompat;
+import com.yausername.youtubedl_android.*;
+import java.io.File;
+public class DownloadService extends Service {
+    public static final String EXTRA_URL = "url", EXTRA_TITLE = "title";
+    private static final String CH = "dl_ch";
+    @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        String url = intent.getStringExtra(EXTRA_URL), title = intent.getStringExtra(EXTRA_TITLE);
+        String format = Prefs.getFormat(this), quality = Prefs.getQuality(this);
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        nm.createNotificationChannel(new NotificationChannel(CH, "Descargas", NotificationManager.IMPORTANCE_LOW));
+        startForeground(1, new NotificationCompat.Builder(this, CH)
+            .setContentTitle("Descargando...").setContentText(title)
+            .setSmallIcon(android.R.drawable.stat_sys_download).build());
+        new Thread(() -> {
+            try {
+                File outDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "YTubeDown");
+                if (!outDir.exists()) outDir.mkdirs();
+                YoutubeDLRequest req = new YoutubeDLRequest(url);
+                req.addOption("-o", outDir.getAbsolutePath() + "/%(title)s.%(ext)s");
+                if (format.equals("audio")) {
+                    req.addOption("-x"); req.addOption("--audio-format","mp3");
+                    req.addOption("--audio-quality", quality + "K");
+                    req.addOption("--embed-thumbnail"); req.addOption("--add-metadata");
+                } else {
+                    req.addOption("-f","bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]");
+                    req.addOption("--merge-output-format","mp4");
+                }
+                YoutubeDL.getInstance().execute(req, null);
+                toast("✅ " + title);
+            } catch (Exception e) { toast("❌ " + e.getMessage()); } finally { stopSelf(); }
+        }).start();
+        return START_NOT_STICKY;
+    }
+    private void toast(String msg) { new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(this,msg,Toast.LENGTH_LONG).show()); }
+    @Override public IBinder onBind(Intent i) { return null; }
+}
+EOF
+
+          cat > $SRC/MainActivity.java << 'EOF'
+package com.ytubedown;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.inputmethod.*;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.*;
+import com.yausername.youtubedl_android.*;
+import java.util.*;
+public class MainActivity extends AppCompatActivity {
+    private EditText etSearch;
+    private RecyclerView recyclerView;
+    private ProgressBar progressBar;
+    private LinearLayout emptyState;
+    private final List<VideoItem> videoList = new ArrayList<>();
+    private final YouTubeSearch youTubeSearch = new YouTubeSearch();
+    @Override protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        try { YoutubeDL.getInstance().init(this); } catch (YoutubeDLException e) {}
+        new Thread(() -> { try { YoutubeDL.getInstance().updateYoutubeDL(this, YoutubeDL.UpdateChannel.STABLE); } catch (Exception ignored) {} }).start();
+        etSearch = findViewById(R.id.etSearch);
+        recyclerView = findViewById(R.id.recyclerView);
+        progressBar = findViewById(R.id.progressBar);
+        emptyState = findViewById(R.id.emptyState);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(new VideoAdapter(videoList, this::onDownload));
+        etSearch.setOnEditorActionListener((v,a,e) -> { if(a==EditorInfo.IME_ACTION_SEARCH){doSearch();return true;} return false; });
+        findViewById(R.id.btnSearch).setOnClickListener(v -> doSearch());
+        findViewById(R.id.btnSettings).setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+    }
+    private void doSearch() {
+        String q = etSearch.getText().toString().trim();
+        if (q.isEmpty()) return;
+        ((InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(etSearch.getWindowToken(),0);
+        progressBar.setVisibility(android.view.View.VISIBLE);
+        emptyState.setVisibility(android.view.View.GONE);
+        recyclerView.setVisibility(android.view.View.GONE);
+        youTubeSearch.search(q, new YouTubeSearch.Callback() {
+            public void onResults(List<VideoItem> items) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(android.view.View.GONE);
+                    videoList.clear(); videoList.addAll(items);
+                    ((VideoAdapter)recyclerView.getAdapter()).notifyDataSetChanged();
+                    recyclerView.setVisibility(android.view.View.VISIBLE);
+                    if (items.isEmpty()) emptyState.setVisibility(android.view.View.VISIBLE);
+                });
+            }
+            public void onError(String msg) {
+                runOnUiThread(() -> { progressBar.setVisibility(android.view.View.GONE);
+                    emptyState.setVisibility(android.view.View.VISIBLE);
+                    Toast.makeText(MainActivity.this,msg,Toast.LENGTH_LONG).show(); });
+            }
+        });
+    }
+    private void onDownload(VideoItem item) {
+        Toast.makeText(this,"⬇️ " + item.title, Toast.LENGTH_SHORT).show();
+        Intent i = new Intent(this, DownloadService.class);
+        i.putExtra(DownloadService.EXTRA_URL, item.url);
+        i.putExtra(DownloadService.EXTRA_TITLE, item.title);
+        startForegroundService(i);
+    }
+}
+EOF
+
+          cat > $SRC/SettingsActivity.java << 'EOF'
+package com.ytubedown;
+import android.os.Bundle;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+public class SettingsActivity extends AppCompatActivity {
+    private RadioButton rbAudio, rbVideo;
+    private Spinner spinnerQuality;
+    private final String[] qualityValues = {"320","256","192","128"};
+    @Override protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_settings);
+        rbAudio = findViewById(R.id.rbAudio); rbVideo = findViewById(R.id.rbVideo);
+        spinnerQuality = findViewById(R.id.spinnerQuality);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.quality_options, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerQuality.setAdapter(adapter);
+        String fmt = Prefs.getFormat(this), q = Prefs.getQuality(this);
+        if (fmt.equals("video")) rbVideo.setChecked(true); else rbAudio.setChecked(true);
+        for (int i=0;i<qualityValues.length;i++) if (qualityValues[i].equals(q)) { spinnerQuality.setSelection(i); break; }
+        LinearLayout optAudio = findViewById(R.id.optAudio), optVideo = findViewById(R.id.optVideo);
+        optAudio.setOnClickListener(v -> { rbAudio.setChecked(true); rbVideo.setChecked(false); });
+        optVideo.setOnClickListener(v -> { rbVideo.setChecked(true); rbAudio.setChecked(false); });
+        findViewById(R.id.btnSave).setOnClickListener(v -> {
+            Prefs.save(this, rbAudio.isChecked()?"audio":"video", qualityValues[spinnerQuality.getSelectedItemPosition()]);
+            Toast.makeText(this,"✅ Guardado",Toast.LENGTH_SHORT).show(); finish();
+        });
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
+    }
+}
+EOF
+
+      # ── PROGUARD ───────────────────────────────────────────────────────────
+      - name: Write proguard-rules.pro
+        run: |
+          cat > app/proguard-rules.pro << 'EOF'
+-keep class com.yausername.** { *; }
+-keep class com.google.gson.** { *; }
+-dontwarn okhttp3.**
+EOF
+
+      # ── BUILD ──────────────────────────────────────────────────────────────
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: YTubeDown-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
