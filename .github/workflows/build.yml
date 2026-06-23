@@ -510,7 +510,7 @@ jobs:
             @Override protected void onCreate(Bundle b){
               super.onCreate(b);setContentView(R.layout.activity_main);
               try{YoutubeDL.getInstance().init(this);}catch(YoutubeDLException e){}
-              new Thread(()->{try{YoutubeDL.getInstance().updateYoutubeDL(this,YoutubeDL.UpdateChannel.STABLE);}catch(Exception e){}}). start();
+              new Thread(()->{try{YoutubeDL.getInstance().updateYoutubeDL(this,YoutubeDL.UpdateChannel.RELEASE);}catch(Exception e){}}). start();
               etSearch=findViewById(R.id.etSearch);
               rv=findViewById(R.id.recyclerView);
               pb=findViewById(R.id.progressBar);
