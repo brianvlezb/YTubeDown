@@ -208,7 +208,7 @@ jobs:
               android:paddingHorizontal="12dp">
               <EditText android:id="@+id/etSearch" android:layout_width="0dp"
                 android:layout_height="match_parent" android:layout_weight="1"
-                android:hint="Buscar en YouTube..." android:hintTextColor="#666666"
+                android:hint="Buscar en YouTube..." android:textColorHint="#666666"
                 android:textColor="#FFFFFF" android:textSize="15sp" android:background="@null"
                 android:imeOptions="actionSearch" android:inputType="text" android:singleLine="true"/>
               <ImageButton android:id="@+id/btnSearch" android:layout_width="36dp"
