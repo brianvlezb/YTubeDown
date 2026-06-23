@@ -53,6 +53,14 @@ jobs:
           chmod +x gradlew
           curl -sL "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
 
+      - name: Write gradle.properties
+        run: |
+          cat > gradle.properties << 'GPEOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          GPEOF
+
       - name: Write build files
         run: |
           cat > build.gradle << 'BEOF'
