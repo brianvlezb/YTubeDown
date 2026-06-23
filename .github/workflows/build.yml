@@ -16,7 +16,7 @@ jobs:
           mkdir -p app/src/main/res/{layout,values,drawable}
           mkdir -p gradle/wrapper
 
-- name: Write icons
+      - name: Write icons
         run: |
           python3 << 'PYEOF'
           import base64, os
@@ -36,7 +36,7 @@ jobs:
               open(f'{path}/ic_launcher.png', 'wb').write(d)
               open(f'{path}/ic_launcher_round.png', 'wb').write(d)
           PYEOF
-          
+
       - name: Write gradle wrapper
         run: |
           cat > gradle/wrapper/gradle-wrapper.properties << 'GEOF'
